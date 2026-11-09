@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pseudocode Quest - Misi Menjadi Algorithm Designer</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        game: {
+                            dark: '#fff1f2', // Rose-50 (Putih dengan hint merah)
+                            panel: '#ffffff', // Putih murni
+                            primary: '#dc2626', // Merah
+                            secondary: '#ef4444', // Merah muda
+                            accent: '#f87171',
+                        }
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 3s infinite',
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #ffffff;
+            /* Pola titik-titik samar untuk kesan modern/lab */
+            background-image: radial-gradient(#fecaca 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: #1f2937; /* Teks abu-abu gelap agar kontras */
+            overflow-x: hidden;
+        }
+        /* Custom Scrollbar Merah */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #fee2e2; }
+        ::-webkit-scrollbar-thumb { background: #ef4444; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #b91c1c; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 2px solid #fecaca;
+            box-shadow: 0 10px 25px rgba(220, 38, 38, 0.1);
+        }
+
+        .btn-game {
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-game:active { transform: scale(0.95); }
+        .btn-game::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 5px; height: 5px;
+            background: rgba(255,255,255,0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%);
+            transform-origin: 50% 50%;
+        }
+        @keyframes ripple {
+            0% { transform: scale(0, 0); opacity: 1; }
+            20% { transform: scale(25, 25); opacity: 1; }
+            100% { opacity: 0; transform: scale(40, 40); }
+        }
+        .btn-game:focus:not(:active)::after { animation: ripple 1s ease-out; }
+
+        .code-block {
+            background: #fff1f2;
+            border-left: 4px solid #ef4444;
+            font-family: 'Fira Code', monospace;
+            color: #7f1d1d;
+        }
+
+        .floating-xp {
+            position: fixed;
+            color: #dc2626;
+            font-weight: bold;
+            font-size: 1.5rem;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            z-index: 1000;
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.2); }
+        }
+
+        .hidden-screen { display: none !important; }
+        
+        .slot-item {
+            border: 2px dashed #fca5a5;
+            min-height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #ffffff;
+            color: #4b5563;
+        }
+        .slot-item:hover { border-color: #ef4444; background: #fef2f2; }
+        .slot-item.filled {
+            border: 2px solid #ef4444;
+            background: #ef4444;
+            color: white;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans relative">
+
+    <!-- HUD (Heads Up Display) -->
+    <header id="hud" class="glass-panel sticky top-0 z-50 p-3 px-4 md:px-8 flex justify-between items-center shadow-md hidden-screen border-b border-red-200">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-red-600 to-red-400 flex items-center justify-center text-xl shadow-md border-2 border-white text-white" id="player-avatar">
+                🤖
+            </div>
+            <div>
+                <div class="text-xs text-red-700 font-bold" id="player-role-text">Algorithm Beginner</div>
+                <div class="text-sm font-bold text-gray-800 flex gap-2">
+                    <span class="text-red-600"><i class="fas fa-star"></i> <span id="hud-xp">0</span> XP</span>
+                </div>
+            </div>
+        </div>
+        <div class="flex gap-4 items-center">
+            <div class="flex items-center gap-1 text-amber-600 font-bold bg-amber-100 px-3 py-1 rounded-full border border-amber-300">
+                <i class="fas fa-coins"></i> <span id="hud-coins">0</span>
+            </div>
+            <div class="flex items-center gap-1 text-red-600 font-bold bg-red-100 px-3 py-1 rounded-full border border-red-300">
+                <i class="fas fa-heart"></i> <span id="hud-energy">3</span>
+            </div>
+            <div id="combo-meter" class="hidden items-center gap-1 text-orange-600 font-bold bg-orange-100 px-3 py-1 rounded-full border border-orange-300 animate-pulse">
+                <i class="fas fa-fire"></i> x<span id="hud-combo">2</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Custom Feedback Modal -->
+    <div id="feedback-modal" class="fixed inset-0 bg-black/60 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white border-4 border-red-500 rounded-2xl p-6 max-w-md w-full text-center shadow-2xl transform scale-95 transition-transform duration-300" id="feedback-content">
+            <div id="feedback-icon" class="text-5xl mb-4">✅</div>
+            <h3 id="feedback-title" class="text-2xl font-bold mb-2 text-red-600">Tepat Sekali!</h3>
+            <p id="feedback-msg" class="text-gray-600 mb-6 text-sm md:text-base">Pesan feedback disini.</p>
+            <button onclick="closeFeedback()" class="btn-game w-full py-3 bg-gradient-to-r from-red-600 to-red-500 rounded-xl font-bold shadow-lg shadow-red-500/30 text-white">
+                LANJUT <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-grow w-full max-w-5xl mx-auto p-4 md:p-6 flex flex-col justify-center relative">
+
+        <!-- SCREEN: HOME -->
+        <section id="screen-home" class="flex flex-col items-center justify-center text-center py-10">
+            <div class="w-32 h-32 bg-gradient-to-br from-red-600 to-red-500 rounded-3xl mb-8 flex items-center justify-center shadow-2xl shadow-red-500/40 animate-bounce-slow transform rotate-3 border-4 border-white">
+                <i class="fas fa-terminal text-6xl text-white"></i>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-800 mb-4 uppercase tracking-wider drop-shadow-sm">
+                Pseudocode Quest
+            </h1>
+            <h2 class="text-xl md:text-2xl font-semibold text-red-700 mb-6">"Bisakah kamu memberi instruksi yang dipahami komputer?"</h2>
+            <p class="max-w-2xl text-gray-700 mb-10 leading-relaxed bg-white/80 p-6 rounded-2xl border border-red-200 backdrop-blur-sm shadow-sm">
+                Komputer tidak bisa menebak apa yang kita pikirkan. Ia membutuhkan instruksi yang jelas, terurut, dan logis. Dalam misi ini, kamu akan belajar mengubah masalah sehari-hari menjadi algoritma menggunakan <span class="text-red-600 font-mono bg-red-100 px-2 py-1 rounded font-bold">pseudocode</span>.
+            </p>
+            <button onclick="nav('role-select')" class="btn-game px-10 py-4 bg-gradient-to-r from-red-600 to-red-500 rounded-full font-bold text-lg shadow-xl shadow-red-500/40 hover:shadow-red-500/60 hover:-translate-y-1 text-white border-2 border-white">
+                MULAI MISI <i class="fas fa-rocket ml-2"></i>
+            </button>
+        </section>
+
+        <!-- SCREEN: ROLE SELECT -->
+        <section id="screen-role-select" class="hidden-screen flex-col items-center py-10 w-full">
+            <h2 class="text-3xl font-bold mb-2 text-center text-red-700">Pilih Peranmu</h2>
+            <p class="text-gray-600 mb-8 text-center">Pilih karakter Algorithm Designer-mu untuk misi ini!</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
+                <div onclick="selectRole('Robot Programmer', '🤖')" class="glass-panel rounded-2xl p-6 cursor-pointer hover:border-red-500 hover:bg-red-50 transition-all flex items-center gap-4 group">
+                    <div class="text-5xl group-hover:scale-110 transition-transform">🤖</div>
+                    <div>
+                        <h3 class="text-xl font-bold text-red-700">Robot Programmer</h3>
+                        <p class="text-sm text-gray-500">Logis dan sistematis.</p>
+                    </div>
+                </div>
+                <div onclick="selectRole('Logic Master', '🧠')" class="glass-panel rounded-2xl p-6 cursor-pointer hover:border-red-500 hover:bg-red-50 transition-all flex items-center gap-4 group">
+                    <div class="text-5xl group-hover:scale-110 transition-transform">🧠</div>
+                    <div>
+                        <h3 class="text-xl font-bold text-red-700">Logic Master</h3>
+                        <p class="text-sm text-gray-500">Ahli menyusun strategi.</p>
+                    </div>
+                </div>
+                <div onclick="selectRole('Bug Hunter', '🔍')" class="glass-panel rounded-2xl p-6 cursor-pointer hover:border-red-500 hover:bg-red-50 transition-all flex items-center gap-4 group">
+                    <div class="text-5xl group-hover:scale-110 transition-transform">🔍</div>
+                    <div>
+                        <h3 class="text-xl font-bold text-red-700">Bug Hunter</h3>
+                        <p class="text-sm text-gray-500">Pencari kesalahan jeli.</p>
+                    </div>
+                </div>
+                <div onclick="selectRole('Algorithm Designer', '⚡')" class="glass-panel rounded-2xl p-6 cursor-pointer hover:border-red-500 hover:bg-red-50 transition-all flex items-center gap-4 group">
+                    <div class="text-5xl group-hover:scale-110 transition-transform">⚡</div>
+                    <div>
+                        <h3 class="text-xl font-bold text-red-700">Algorithm Designer</h3>
+                        <p class="text-sm text-gray-500">Kreatif dan inovatif.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN: MISSION HUB -->
+        <section id="screen-hub" class="hidden-screen flex-col items-center w-full py-6">
+            <h2 class="text-3xl font-bold mb-8 text-center text-red-700 uppercase tracking-widest border-b-4 border-red-500 pb-2 inline-block">Laboratorium Algoritma</h2>
+            
+            <div class="relative w-full max-w-2xl mx-auto flex flex-col gap-10">
+                <!-- Line connecting nodes -->
+                <div class="absolute left-[39px] md:left-1/2 top-10 bottom-10 w-1 bg-red-200 -z-10 md:-translate-x-1/2 rounded"></div>
+                
+                <!-- Node 1 -->
+                <div class="flex flex-col md:flex-row items-start md:items-center gap-6 relative">
+                    <div class="w-20 h-20 rounded-full bg-white border-4 border-red-600 flex items-center justify-center z-10 shadow-[0_0_15px_rgba(220,38,38,0.4)] flex-shrink-0 md:mx-auto">
+                        <i class="fas fa-brain text-2xl text-red-600"></i>
+                    </div>
+                    <div class="glass-panel p-5 rounded-2xl md:w-[calc(50%-3rem)] md:absolute md:right-0">
+                        <div class="text-xs font-bold text-red-500 mb-1">MISSION 1</div>
+                        <h3 class="text-xl font-bold mb-2 text-gray-800">MEMAHAMI</h3>
+                        <p class="text-sm text-gray-600 mb-4">Kenali dasar pseudocode dan logika urutan.</p>
+                        <button onclick="startMission('memahami')" class="btn-game w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm">MULAI <i class="fas fa-play ml-1"></i></button>
+                    </div>
+                </div>
+
+                <!-- Node 2 -->
+                <div class="flex flex-col md:flex-row items-start md:items-center gap-6 relative opacity-60" id="node-mengaplikasi">
+                    <div class="w-20 h-20 rounded-full bg-white border-4 border-gray-300 flex items-center justify-center z-10 flex-shrink-0 md:mx-auto" id="icon-mengaplikasi">
+                        <i class="fas fa-rocket text-2xl text-gray-400"></i>
+                    </div>
+                    <div class="glass-panel p-5 rounded-2xl md:w-[calc(50%-3rem)] md:absolute md:left-0 md:text-right bg-gray-50 border-gray-200">
+                        <div class="text-xs font-bold text-gray-400 mb-1">MISSION 2</div>
+                        <h3 class="text-xl font-bold mb-2 text-gray-700">MENGAPLIKASI</h3>
+                        <p class="text-sm text-gray-500 mb-4">Selesaikan kasus nyata dengan algoritma.</p>
+                        <button id="btn-mengaplikasi" class="btn-game w-full py-2 bg-gray-300 cursor-not-allowed rounded-lg font-bold text-sm text-gray-600">TERKUNCI <i class="fas fa-lock ml-1"></i></button>
+                    </div>
+                </div>
+
+                <!-- Node 3 -->
+                <div class="flex flex-col md:flex-row items-start md:items-center gap-6 relative opacity-60" id="node-merefleksi">
+                    <div class="w-20 h-20 rounded-full bg-white border-4 border-gray-300 flex items-center justify-center z-10 flex-shrink-0 md:mx-auto" id="icon-merefleksi">
+                        <i class="fas fa-search text-2xl text-gray-400"></i>
+                    </div>
+                    <div class="glass-panel p-5 rounded-2xl md:w-[calc(50%-3rem)] md:absolute md:right-0 bg-gray-50 border-gray-200">
+                        <div class="text-xs font-bold text-gray-400 mb-1">MISSION 3</div>
+                        <h3 class="text-xl font-bold mb-2 text-gray-700">MEREFLEKSI</h3>
+                        <p class="text-sm text-gray-500 mb-4">Evaluasi pemahaman dan temukan bug.</p>
+                        <button id="btn-merefleksi" class="btn-game w-full py-2 bg-gray-300 cursor-not-allowed rounded-lg font-bold text-sm text-gray-600">TERKUNCI <i class="fas fa-lock ml-1"></i></button>
+                    </div>
+                </div>
+
+                <!-- Node 4 (Kesimpulan) -->
+                <div class="flex flex-col md:flex-row items-start md:items-center gap-6 relative opacity-60" id="node-kesimpulan">
+                    <div class="w-20 h-20 rounded-full bg-white border-4 border-gray-300 flex items-center justify-center z-10 flex-shrink-0 md:mx-auto" id="icon-kesimpulan">
+                        <i class="fas fa-book text-2xl text-gray-400"></i>
+                    </div>
+                    <div class="glass-panel p-5 rounded-2xl md:w-[calc(50%-3rem)] md:absolute md:left-0 md:text-right bg-gray-50 border-gray-200">
+                        <div class="text-xs font-bold text-gray-400 mb-1">MISSION 4</div>
+                        <h3 class="text-xl font-bold mb-2 text-gray-700">KESIMPULAN</h3>
+                        <p class="text-sm text-gray-500 mb-4">Catatan akhir Algorithm Designer.</p>
+                        <button id="btn-kesimpulan" class="btn-game w-full py-2 bg-gray-300 cursor-not-allowed rounded-lg font-bold text-sm text-gray-600">TERKUNCI <i class="fas fa-lock ml-1"></i></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN: MEMAHAMI -->
+        <section id="screen-memahami" class="hidden-screen flex-col w-full max-w-3xl mx-auto py-6">
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="nav('hub')" class="text-red-600 hover:text-red-800 font-bold"><i class="fas fa-arrow-left"></i> Peta Misi</button>
+                <div class="text-red-700 font-bold bg-red-100 px-3 py-1 rounded-full"><i class="fas fa-brain"></i> MEMAHAMI</div>
+            </div>
+            
+            <div id="memahami-content" class="glass-panel rounded-2xl p-6 md:p-8 min-h-[400px] flex flex-col justify-between border-t-8 border-t-red-600">
+                <!-- Content injected via JS -->
+            </div>
+        </section>
+
+        <!-- SCREEN: MENGAPLIKASI -->
+        <section id="screen-mengaplikasi" class="hidden-screen flex-col w-full max-w-4xl mx-auto py-6">
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="nav('hub')" class="text-red-600 hover:text-red-800 font-bold"><i class="fas fa-arrow-left"></i> Peta Misi</button>
+                <div class="text-red-700 font-bold bg-red-100 px-3 py-1 rounded-full"><i class="fas fa-rocket"></i> MENGAPLIKASI</div>
+            </div>
+            
+            <div id="mengaplikasi-content" class="glass-panel rounded-2xl p-4 md:p-6 border-t-8 border-t-red-600">
+                <!-- Content injected via JS -->
+            </div>
+        </section>
+
+        <!-- SCREEN: MEREFLEKSI -->
+        <section id="screen-merefleksi" class="hidden-screen flex-col w-full max-w-3xl mx-auto py-6">
+             <div class="flex justify-between items-center mb-6">
+                <button onclick="nav('hub')" class="text-red-600 hover:text-red-800 font-bold"><i class="fas fa-arrow-left"></i> Peta Misi</button>
+                <div class="text-red-700 font-bold bg-red-100 px-3 py-1 rounded-full"><i class="fas fa-search"></i> MEREFLEKSI</div>
+            </div>
+            <div id="merefleksi-content" class="glass-panel rounded-2xl p-6 border-t-8 border-t-red-600">
+                 <!-- Content injected via JS -->
+            </div>
+        </section>
+
+        <!-- SCREEN: KESIMPULAN -->
+        <section id="screen-kesimpulan" class="hidden-screen flex-col w-full max-w-4xl mx-auto py-6">
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="nav('hub')" class="text-red-600 hover:text-red-800 font-bold"><i class="fas fa-arrow-left"></i> Peta Misi</button>
+                <div class="text-red-700 font-bold bg-red-100 px-3 py-1 rounded-full"><i class="fas fa-book"></i> KESIMPULAN</div>
+            </div>
+            
+            <div class="glass-panel rounded-2xl p-6 md:p-8 border-t-8 border-t-red-600 shadow-xl">
+                <h2 class="text-3xl font-extrabold text-red-700 mb-6 text-center uppercase tracking-wider">Catatan Algorithm Designer</h2>
+                <p class="text-gray-700 text-center mb-10 text-lg">Selamat! Kamu telah menguasai fondasi algoritma. Berikut adalah rangkuman perjalananmu yang bisa kamu jadikan pedoman:</p>
+                
+                <!-- Card 1 -->
+                <div class="bg-red-50 rounded-xl overflow-hidden border border-red-200 mb-8 shadow-sm flex flex-col md:flex-row">
+                    <div class="md:w-2/5 relative">
+                        <img src="https://placehold.co/400x300/fee2e2/dc2626?text=Logika+%26+Urutan" alt="Algoritma dan Urutan" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 border-r-4 border-red-200 hidden md:block"></div>
+                    </div>
+                    <div class="p-6 md:w-3/5">
+                        <h3 class="text-xl font-bold text-red-700 mb-2"><i class="fas fa-list-ol mr-2"></i> 1. Algoritma & Pseudocode</h3>
+                        <p class="text-gray-700 mb-3"><b>Algoritma</b> adalah urutan langkah-langkah logis untuk menyelesaikan suatu masalah atau mencapai tujuan tertentu. Tanpa urutan yang benar (Sequence), komputer akan kebingungan.</p>
+                        <p class="text-gray-700"><b>Pseudocode</b> adalah "kode semu" yang kita gunakan agar logika pemecahan masalah bisa disusun dalam bahasa manusia, sebelum nantinya diubah menjadi bahasa pemrograman asli.</p>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="bg-red-50 rounded-xl overflow-hidden border border-red-200 mb-8 shadow-sm flex flex-col md:flex-row-reverse">
+                    <div class="md:w-2/5 relative">
+                        <img src="https://placehold.co/400x300/fca5a5/7f1d1d?text=Kondisi+(IF/ELSE)" alt="Kondisi dan Percabangan" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 border-l-4 border-red-200 hidden md:block"></div>
+                    </div>
+                    <div class="p-6 md:w-3/5">
+                        <h3 class="text-xl font-bold text-red-700 mb-2"><i class="fas fa-code-branch mr-2"></i> 2. Kondisi (Branching)</h3>
+                        <p class="text-gray-700 mb-3">Tidak semua program berjalan lurus. Komputer harus sering mengambil keputusan. Di sinilah kita menggunakan pengecekan kondisi.</p>
+                        <ul class="list-disc pl-5 text-gray-700 space-y-2">
+                            <li><b class="text-red-700 font-mono">IF (Jika)</b>: Mengeksekusi instruksi HANYA JIKA kondisinya BENAR.</li>
+                            <li><b class="text-red-700 font-mono">ELSE (Selain itu)</b>: Jalur alternatif yang dipilih jika kondisi IF ternyata SALAH.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="bg-red-50 rounded-xl overflow-hidden border border-red-200 mb-8 shadow-sm flex flex-col md:flex-row">
+                    <div class="md:w-2/5 relative">
+                        <img src="https://placehold.co/400x300/f87171/ffffff?text=Perulangan+(LOOP)" alt="Looping" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 border-r-4 border-red-200 hidden md:block"></div>
+                    </div>
+                    <div class="p-6 md:w-3/5">
+                        <h3 class="text-xl font-bold text-red-700 mb-2"><i class="fas fa-sync-alt mr-2"></i> 3. Perulangan (Looping)</h3>
+                        <p class="text-gray-700 mb-3">Komputer sangat hebat dalam melakukan pekerjaan berulang-ulang dengan cepat. Kita menggunakan <b>Looping</b> agar kita tidak lelah menulis perintah yang sama ratusan kali.</p>
+                        <ul class="list-disc pl-5 text-gray-700 space-y-2">
+                            <li><b class="text-red-700 font-mono">FOR</b>: Mengulang instruksi dengan batasan jumlah yang sudah diketahui dan pasti (misal: jalankan 5 kali).</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl border-2 border-red-200 text-center mb-10">
+                    <h3 class="font-bold text-red-700 mb-4 text-lg">Bank Kosa Kata Pseudocode 📖</h3>
+                    <div class="flex flex-wrap justify-center gap-3">
+                        <span class="px-4 py-2 bg-red-100 border border-red-300 rounded-lg font-mono font-bold text-red-800 shadow-sm">START / END</span>
+                        <span class="px-4 py-2 bg-red-100 border border-red-300 rounded-lg font-mono font-bold text-red-800 shadow-sm">INPUT / OUTPUT</span>
+                        <span class="px-4 py-2 bg-red-100 border border-red-300 rounded-lg font-mono font-bold text-red-800 shadow-sm">SET (Variabel)</span>
+                    </div>
+                </div>
+
+                <button onclick="showResult()" class="btn-game w-full py-4 bg-gradient-to-r from-red-600 to-red-700 rounded-xl font-bold shadow-lg shadow-red-600/30 text-white text-xl uppercase tracking-wide hover:-translate-y-1 transition-transform border-2 border-white">
+                    🏆 LIHAT RAPOR HASIL AKHIR 🏆
+                </button>
+            </div>
+        </section>
+
+        <!-- SCREEN: RESULT -->
+        <section id="screen-result" class="hidden-screen flex-col items-center w-full py-10">
+            <div class="w-32 h-32 bg-gradient-to-br from-red-600 to-red-400 rounded-full mb-6 flex items-center justify-center shadow-[0_0_30px_rgba(239,68,68,0.5)] border-4 border-white">
+                <i class="fas fa-trophy text-6xl text-white"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-800 mb-2 uppercase text-center">
+                MISSION COMPLETE!
+            </h1>
+            <p class="text-xl text-gray-600 mb-8 font-bold" id="result-player-name">Algorithm Designer</p>
+            
+            <div class="glass-panel rounded-2xl p-6 md:p-8 w-full max-w-2xl mb-8">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-8">
+                    <div class="bg-red-50 p-4 rounded-xl border border-red-200">
+                        <div class="text-xs text-red-600 font-bold mb-1">Total XP</div>
+                        <div class="text-2xl font-bold text-gray-800" id="res-xp">0</div>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-xl border border-red-200">
+                        <div class="text-xs text-red-600 font-bold mb-1">Koin</div>
+                        <div class="text-2xl font-bold text-gray-800" id="res-coins">0</div>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-xl border border-red-200">
+                        <div class="text-xs text-red-600 font-bold mb-1">Max Combo</div>
+                        <div class="text-2xl font-bold text-gray-800" id="res-combo">0</div>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-xl border border-red-200">
+                        <div class="text-xs text-red-600 font-bold mb-1">Nilai Akhir</div>
+                        <div class="text-2xl font-bold text-gray-800" id="res-score">0/100</div>
+                    </div>
+                </div>
+
+                <h3 class="font-bold text-lg mb-4 border-b border-red-200 pb-2 text-red-700">Badges Diperoleh</h3>
+                <div class="flex flex-wrap gap-3 justify-center mb-6" id="badges-container">
+                    <!-- Badges -->
+                </div>
+
+                <div class="bg-red-50 p-4 rounded-lg border border-red-300">
+                    <h4 class="font-bold text-red-700 mb-2"><i class="fas fa-lightbulb"></i> Pesan Sistem:</h4>
+                    <p class="text-sm text-gray-700" id="res-recommendation">Rekomendasi.</p>
+                </div>
+            </div>
+            
+            <button onclick="location.reload()" class="btn-game px-8 py-3 bg-red-600 hover:bg-red-700 rounded-full font-bold text-white shadow-lg">
+                <i class="fas fa-redo mr-2"></i> MAIN LAGI
+            </button>
+        </section>
+
+    </main>
+
+    <script>
+        // --- GAME STATE ---
+        const state = {
+            player: { role: '', icon: '', xp: 0, coins: 0, energy: 3, combo: 0, maxCombo: 0 },
+            progress: { memahami: false, mengaplikasi: false, merefleksi: false, kesimpulan: false },
+            stats: { correct: 0, wrong: 0, score: 0 },
+            badges: [], currentSubLevel: 0
+        };
+
+        // --- CORE FUNCTIONS ---
+        function updateHUD() {
+            document.getElementById('hud-xp').innerText = state.player.xp;
+            document.getElementById('hud-coins').innerText = state.player.coins;
+            document.getElementById('hud-energy').innerText = state.player.energy;
+            
+            const comboMeter = document.getElementById('combo-meter');
+            if(state.player.combo >= 2) {
+                comboMeter.classList.remove('hidden');
+                comboMeter.classList.add('flex');
+                document.getElementById('hud-combo').innerText = state.player.combo;
+            } else {
+                comboMeter.classList.add('hidden');
+                comboMeter.classList.remove('flex');
+            }
+        }
+
+        function createFloatingText(text, color, eventOrElement) {
+            const el = document.createElement('div');
+            el.className = 'floating-xp';
+            el.style.color = color;
+            el.innerText = text;
+            
+            let x = window.innerWidth / 2, y = window.innerHeight / 2;
+            if (eventOrElement && eventOrElement.clientX) { x = eventOrElement.clientX; y = eventOrElement.clientY; }
+            else if (eventOrElement && eventOrElement.getBoundingClientRect) {
+                const rect = eventOrElement.getBoundingClientRect();
+                x = rect.left + rect.width / 2; y = rect.top;
+            }
+            el.style.left = `${x}px`; el.style.top = `${y}px`;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function addXP(amount, reason, e) {
+            state.player.xp += amount;
+            createFloatingText(`+${amount} XP`, '#dc2626', e); // Merah untuk theme
+            updateHUD();
+        }
+
+        function addCoin(amount, e) {
+            state.player.coins += amount;
+            createFloatingText(`+${amount} Koin`, '#d97706', e);
+            updateHUD();
+        }
+
+        function deductEnergy(e) {
+            if(state.player.energy > 0) {
+                state.player.energy -= 1;
+                createFloatingText(`-1 Energy`, '#991b1b', e);
+                updateHUD();
+                if(state.player.energy === 0) {
+                    showFeedback('error', 'Energy Habis!', 'Kamu harus lebih berhati-hati. Sistem memberimu 1 energy ekstra untuk lanjut!', () => {
+                        state.player.energy = 1; updateHUD();
+                    });
+                }
+            }
+        }
+
+        function handleAnswer(isCorrect, xpAmount, e) {
+            if (isCorrect) {
+                state.stats.correct++;
+                state.player.combo++;
+                if (state.player.combo > state.player.maxCombo) state.player.maxCombo = state.player.combo;
+                
+                let bonus = 0;
+                if (state.player.combo >= 3) {
+                    bonus = 10;
+                    createFloatingText(`🔥 COMBO! +${bonus} XP`, '#ea580c', {clientX: window.innerWidth/2, clientY: 100});
+                }
+                addXP(xpAmount + bonus, 'Jawaban Benar', e);
+            } else {
+                state.stats.wrong++;
+                state.player.combo = 0;
+                deductEnergy(e);
+            }
+            updateHUD();
+        }
+
+        // --- NAVIGATION ---
+        function nav(screenId) {
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden-screen'));
+            document.getElementById(`screen-${screenId}`).classList.remove('hidden-screen');
+            window.scrollTo(0, 0);
+
+            if(screenId !== 'home' && screenId !== 'role-select') {
+                document.getElementById('hud').classList.remove('hidden-screen');
+            } else {
+                document.getElementById('hud').classList.add('hidden-screen');
+            }
+            if(screenId === 'hub') checkHubUnlocks();
+        }
+
+        function selectRole(role, icon) {
+            state.player.role = role; state.player.icon = icon;
+            document.getElementById('player-avatar').innerText = icon;
+            document.getElementById('player-role-text').innerText = role;
+            nav('hub');
+            showFeedback('success', 'Peran Dipilih!', `Selamat datang, ${role}! Mari kita mulai misi pertama.`);
+        }
+
+        function checkHubUnlocks() {
+            if(state.progress.memahami) {
+                const node = document.getElementById('node-mengaplikasi');
+                const btn = document.getElementById('btn-mengaplikasi');
+                const icon = document.getElementById('icon-mengaplikasi');
+                node.classList.remove('opacity-60');
+                node.querySelector('.glass-panel').classList.remove('bg-gray-50', 'border-gray-200');
+                
+                btn.className = 'btn-game w-full py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold text-sm text-white';
+                btn.innerHTML = 'MULAI <i class="fas fa-play ml-1"></i>';
+                btn.onclick = () => startMission('mengaplikasi');
+                
+                icon.className = 'w-20 h-20 rounded-full bg-white border-4 border-red-600 flex items-center justify-center z-10 shadow-[0_0_15px_rgba(220,38,38,0.4)] flex-shrink-0 md:mx-auto';
+                icon.innerHTML = '<i class="fas fa-rocket text-2xl text-red-600"></i>';
+            }
+            if(state.progress.mengaplikasi) {
+                const node = document.getElementById('node-merefleksi');
+                const btn = document.getElementById('btn-merefleksi');
+                const icon = document.getElementById('icon-merefleksi');
+                node.classList.remove('opacity-60');
+                node.querySelector('.glass-panel').classList.remove('bg-gray-50', 'border-gray-200');
+                
+                btn.className = 'btn-game w-full py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold text-sm text-white';
+                btn.innerHTML = 'MULAI <i class="fas fa-play ml-1"></i>';
+                btn.onclick = () => startMission('merefleksi');
+                
+                icon.className = 'w-20 h-20 rounded-full bg-white border-4 border-red-600 flex items-center justify-center z-10 shadow-[0_0_15px_rgba(220,38,38,0.4)] flex-shrink-0 md:mx-auto';
+                icon.innerHTML = '<i class="fas fa-search text-2xl text-red-600"></i>';
+            }
+            if(state.progress.merefleksi) {
+                const node = document.getElementById('node-kesimpulan');
+                const btn = document.getElementById('btn-kesimpulan');
+                const icon = document.getElementById('icon-kesimpulan');
+                node.classList.remove('opacity-60');
+                node.querySelector('.glass-panel').classList.remove('bg-gray-50', 'border-gray-200');
+                
+                btn.className = 'btn-game w-full py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold text-sm text-white';
+                btn.innerHTML = 'BUKA BUKU <i class="fas fa-book-open ml-1"></i>';
+                btn.onclick = () => nav('kesimpulan');
+                
+                icon.className = 'w-20 h-20 rounded-full bg-white border-4 border-red-600 flex items-center justify-center z-10 shadow-[0_0_15px_rgba(220,38,38,0.4)] flex-shrink-0 md:mx-auto';
+                icon.innerHTML = '<i class="fas fa-book text-2xl text-red-600"></i>';
+            }
+        }
+
+        // --- FEEDBACK SYSTEM ---
+        let feedbackCallback = null;
+        function showFeedback(type, title, msg, callback = null) {
+            const modal = document.getElementById('feedback-modal');
+            const icon = document.getElementById('feedback-icon');
+            const titleEl = document.getElementById('feedback-title');
+            const msgEl = document.getElementById('feedback-msg');
+            const content = document.getElementById('feedback-content');
+
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            
+            // Red/White Theme Setup
+            if (type === 'success') {
+                icon.innerText = '✅';
+                icon.className = 'text-5xl mb-4 text-red-600 drop-shadow-md';
+                titleEl.className = 'text-2xl font-bold mb-2 text-red-600';
+                content.className = 'bg-white border-4 border-red-500 rounded-2xl p-6 max-w-md w-full text-center shadow-2xl transform scale-100 transition-transform duration-300';
+                msgEl.className = 'text-gray-700 mb-6 text-sm md:text-base';
+            } else if (type === 'error') {
+                icon.innerText = '🐞'; 
+                icon.className = 'text-5xl mb-4 text-white drop-shadow-md animate-pulse';
+                titleEl.className = 'text-2xl font-bold mb-2 text-white';
+                content.className = 'bg-red-600 border-4 border-red-800 rounded-2xl p-6 max-w-md w-full text-center shadow-2xl transform scale-100 transition-transform duration-300';
+                msgEl.className = 'text-white mb-6 text-sm md:text-base';
+            } else {
+                icon.innerText = 'ℹ️';
+                icon.className = 'text-5xl mb-4 text-red-500';
+                titleEl.className = 'text-2xl font-bold mb-2 text-red-600';
+                content.className = 'bg-white border-4 border-red-300 rounded-2xl p-6 max-w-md w-full text-center shadow-2xl transform scale-100 transition-transform duration-300';
+                msgEl.className = 'text-gray-700 mb-6 text-sm md:text-base';
+            }
+
+            titleEl.innerText = title;
+            msgEl.innerHTML = msg; 
+            feedbackCallback = callback;
+        }
+
+        function closeFeedback() {
+            const modal = document.getElementById('feedback-modal');
+            modal.classList.add('hidden'); modal.classList.remove('flex');
+            if (feedbackCallback) { feedbackCallback(); feedbackCallback = null; }
+        }
+
+        // ==========================================
+        // MISSION 1: MEMAHAMI (5 Games now)
+        // ==========================================
+        const memahamiGames = [
+            { // Game 1
+                render: () => `
+                    <h3 class="text-xl font-bold text-red-700 mb-2">GAME 1: Apa itu Algoritma?</h3>
+                    <p class="mb-6 text-gray-700">Pilih aktivitas di bawah ini yang dapat dijelaskan sebagai <b>algoritma</b> (memiliki langkah terurut):</p>
+                    <div class="grid grid-cols-1 gap-3">
+                        <button onclick="checkM1G1(this, false)" class="text-left p-4 bg-white border-2 border-red-100 rounded-xl hover:border-red-500 transition-colors font-semibold text-gray-700">A. Menekan tombol keyboard secara acak</button>
+                        <button onclick="checkM1G1(this, true)" class="text-left p-4 bg-white border-2 border-red-100 rounded-xl hover:border-red-500 transition-colors font-semibold text-gray-700">B. Membuat mi instan</button>
+                        <button onclick="checkM1G1(this, false)" class="text-left p-4 bg-white border-2 border-red-100 rounded-xl hover:border-red-500 transition-colors font-semibold text-gray-700">C. Menebak angka tanpa aturan</button>
+                    </div>
+                `
+            },
+            { // Game 2 (NEW)
+                render: () => `
+                    <h3 class="text-xl font-bold text-red-700 mb-2">GAME 2: Pengambilan Keputusan (Kondisi)</h3>
+                    <p class="mb-6 text-gray-700">Algoritma seringkali harus memilih jalur berdasarkan "Kondisi" (Jika... Maka...). Manakah dari aktivitas berikut yang menggunakan KONDISI?</p>
+                    <div class="grid grid-cols-1 gap-3">
+                        <button onclick="checkM1G2_new(this, false)" class="text-left p-4 bg-white border-2 border-red-100 rounded-xl hover:border-red-500 transition-colors font-semibold text-gray-700">A. Berjalan lurus 10 langkah ke depan.</button>
+                        <button onclick="checkM1G2_new(this, true)" class="text-left p-4 bg-white border-2 border-red-100 rounded-xl hover:border-red-500 transition-colors font-semibold text-gray-700">B. Jika hujan turun, maka gunakan payung.</button>
+                        <button onclick="checkM1G2_new(this, false)" class="text-left p-4 bg-white border-2 border-red-100 rounded-xl hover:border-red-500 transition-colors font-semibold text-gray-700">C. Mengulang gerakan memotong sayur sampai habis.</button>
+                    </div>
+                `
+            },
+            { // Game 3
+                render: () => {
+                    window.currentSequence = [];
+                    return `
+                    <h3 class="text-xl font-bold text-red-700 mb-2">GAME 3: Susun Langkahnya</h3>
+                    <p class="mb-4 text-gray-700">Kasus: <b>Membuat Teh Manis</b>. Klik langkah-langkah di bawah ini secara berurutan!</p>
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="flex-1 flex flex-col gap-2" id="source-list">
+                            <button onclick="selectSeq(this, 3)" class="p-3 bg-white border border-red-300 rounded-lg text-left hover:bg-red-50 font-semibold text-gray-700">Masukkan teh</button>
+                            <button onclick="selectSeq(this, 1)" class="p-3 bg-white border border-red-300 rounded-lg text-left hover:bg-red-50 font-semibold text-gray-700">Siapkan gelas</button>
+                            <button onclick="selectSeq(this, 5)" class="p-3 bg-white border border-red-300 rounded-lg text-left hover:bg-red-50 font-semibold text-gray-700">Aduk</button>
+                            <button onclick="selectSeq(this, 4)" class="p-3 bg-white border border-red-300 rounded-lg text-left hover:bg-red-50 font-semibold text-gray-700">Tuangkan air panas</button>
+                            <button onclick="selectSeq(this, 2)" class="p-3 bg-white border border-red-300 rounded-lg text-left hover:bg-red-50 font-semibold text-gray-700">Masukkan gula</button>
+                        </div>
+                        <div class="flex-1 bg-red-50 p-4 rounded-xl border border-red-200 min-h-[250px]">
+                            <h4 class="text-sm text-red-700 font-bold mb-3 border-b border-red-200 pb-2">Urutanmu:</h4>
+                            <div id="target-list" class="flex flex-col gap-2"></div>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-between items-center">
+                        <button onclick="resetSeq()" class="text-red-500 hover:text-red-700 underline text-sm font-bold">Reset</button>
+                        <button onclick="checkM1G3(event)" class="btn-game px-6 py-2 bg-red-600 text-white rounded-lg font-bold">Cek Urutan</button>
+                    </div>
+                `}
+            },
+            { // Game 4
+                render: () => {
+                    window.selectedVocab = null;
+                    return `
+                    <h3 class="text-xl font-bold text-red-700 mb-2">GAME 4: Kosa Kata Pseudocode</h3>
+                    <p class="mb-4 text-gray-700">Pasangkan perintah pseudocode dengan fungsinya! Klik perintah, lalu klik fungsinya.</p>
+                    <div class="flex gap-4 mb-6" id="vocab-buttons">
+                        <button onclick="selVocab(this, 'INPUT')" class="flex-1 p-2 bg-red-100 border border-red-400 text-red-800 rounded font-mono text-center hover:bg-red-200">INPUT</button>
+                        <button onclick="selVocab(this, 'OUTPUT')" class="flex-1 p-2 bg-red-100 border border-red-400 text-red-800 rounded font-mono text-center hover:bg-red-200">OUTPUT</button>
+                        <button onclick="selVocab(this, 'IF')" class="flex-1 p-2 bg-red-100 border border-red-400 text-red-800 rounded font-mono text-center hover:bg-red-200">IF</button>
+                        <button onclick="selVocab(this, 'FOR')" class="flex-1 p-2 bg-red-100 border border-red-400 text-red-800 rounded font-mono text-center hover:bg-red-200">FOR</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="vocab-targets">
+                        <div onclick="matchVocab(this, 'IF')" class="slot-item text-sm p-3 text-center">Mengambil keputusan berdasar kondisi.</div>
+                        <div onclick="matchVocab(this, 'INPUT')" class="slot-item text-sm p-3 text-center">Data yang dimasukkan.</div>
+                        <div onclick="matchVocab(this, 'FOR')" class="slot-item text-sm p-3 text-center">Melakukan perulangan berulang kali.</div>
+                        <div onclick="matchVocab(this, 'OUTPUT')" class="slot-item text-sm p-3 text-center">Hasil yang ditampilkan.</div>
+                    </div>
+                `}
+            },
+            { // Game 5
+                render: () => `
+                    <h3 class="text-xl font-bold text-red-700 mb-2">GAME 5: Prediksi Output</h3>
+                    <p class="mb-4 text-gray-700">Baca pseudocode di bawah ini. Apa yang akan ditampilkan ke layar?</p>
+                    <div class="code-block p-4 rounded-lg mb-6 text-sm bg-red-50 border-l-4 border-red-600 font-mono text-gray-800 shadow-inner">
+                        <span class="text-red-700 font-bold">START</span><br>
+                        &nbsp;&nbsp;<span class="text-red-700 font-bold">SET</span> nama = <span class="text-green-700">"Rani"</span><br>
+                        &nbsp;&nbsp;<span class="text-red-700 font-bold">OUTPUT</span> nama<br>
+                        <span class="text-red-700 font-bold">END</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="checkM1G5(this, false, event)" class="p-3 bg-white border border-red-200 rounded-xl hover:border-red-500 font-mono text-gray-800 shadow-sm">nama</button>
+                        <button onclick="checkM1G5(this, true, event)" class="p-3 bg-white border border-red-200 rounded-xl hover:border-red-500 font-mono text-gray-800 shadow-sm">Rani</button>
+                        <button onclick="checkM1G5(this, false, event)" class="p-3 bg-white border border-red-200 rounded-xl hover:border-red-500 font-mono text-gray-800 shadow-sm">"Rani"</button>
+                        <button onclick="checkM1G5(this, false, event)" class="p-3 bg-white border border-red-200 rounded-xl hover:border-red-500 font-mono text-gray-800 shadow-sm">OUTPUT nama</button>
+                    </div>
+                `
+            }
+        ];
+
+        function startMission(missionStr) {
+            state.currentSubLevel = 0;
+            nav(missionStr);
+            if(missionStr === 'memahami') renderMemahami();
+            if(missionStr === 'mengaplikasi') renderMengaplikasi();
+            if(missionStr === 'merefleksi') renderMerefleksi();
+        }
+
+        function renderMemahami() {
+            if (state.currentSubLevel < memahamiGames.length) {
+                document.getElementById('memahami-content').innerHTML = memahamiGames[state.currentSubLevel].render();
+            } else {
+                state.progress.memahami = true; addCoin(2);
+                state.badges.push({name: "Algorithm Explorer", icon: "🥉", color: "text-amber-600"});
+                showFeedback('success', 'MISSION 1 SELESAI!', 'Luar biasa! Kamu telah memahami konsep dasar pseudocode dan urutan instruksi. Kamu mendapat koin dan Badge ALGORITHM EXPLORER!', () => { nav('hub'); });
+            }
+        }
+
+        // M1 G1 Logic
+        function checkM1G1(btn, isCorrect) {
+            if(isCorrect) {
+                btn.classList.add('bg-red-50', 'border-red-500', 'text-red-700');
+                handleAnswer(true, 10, event);
+                showFeedback('success', 'Tepat!', 'Aktivitas membuat mi instan memiliki langkah-langkah terurut (algoritma) yang bisa menghasilkan output yang sama setiap saat.', () => { state.currentSubLevel++; renderMemahami(); });
+            } else {
+                btn.classList.add('bg-gray-100', 'border-gray-300', 'opacity-70');
+                handleAnswer(false, 0, event);
+                showFeedback('error', 'Belum Tepat', 'Coba cari aktivitas yang memiliki <b>langkah-langkah berurutan</b> dari awal hingga akhir untuk mencapai suatu tujuan.');
+            }
+        }
+
+        // M1 G2 Logic (Kondisi)
+        function checkM1G2_new(btn, isCorrect) {
+            if(isCorrect) {
+                btn.classList.add('bg-red-50', 'border-red-500', 'text-red-700');
+                handleAnswer(true, 10, event);
+                showFeedback('success', 'Tepat!', 'Kata "Jika... maka..." (If... Then...) adalah bentuk pengambilan keputusan berdasar kondisi dalam algoritma.', () => { state.currentSubLevel++; renderMemahami(); });
+            } else {
+                btn.classList.add('bg-gray-100', 'border-gray-300', 'opacity-70');
+                handleAnswer(false, 0, event);
+                showFeedback('error', 'Belum Tepat', 'Cari aktivitas yang memiliki kata "Jika" (pemilihan keputusan), bukan sekadar urutan atau perulangan biasa.');
+            }
+        }
+
+        // M1 G3 Logic (Sequence builder)
+        function selectSeq(btn, id) {
+            if(btn.disabled) return;
+            btn.disabled = true; btn.classList.add('opacity-40', 'cursor-not-allowed', 'bg-gray-100');
+            window.currentSequence.push(id);
+            
+            const targetList = document.getElementById('target-list');
+            const item = document.createElement('div');
+            item.className = 'p-2 bg-white border border-red-300 rounded text-sm text-gray-800 font-semibold shadow-sm animate-pulse-fast';
+            item.innerText = `${window.currentSequence.length}. ${btn.innerText}`;
+            targetList.appendChild(item);
+            setTimeout(() => item.classList.remove('animate-pulse-fast'), 300);
+        }
+        function resetSeq() {
+            window.currentSequence = []; document.getElementById('target-list').innerHTML = '';
+            document.querySelectorAll('#source-list button').forEach(b => {
+                b.disabled = false; b.classList.remove('opacity-40', 'cursor-not-allowed', 'bg-gray-100');
+            });
+        }
+        function checkM1G3(e) {
+            if(window.currentSequence.length < 5) { showFeedback('info', 'Belum Lengkap', 'Pilih semua langkah yang ada di sebelah kiri.'); return; }
+            const ansStr = window.currentSequence.join('');
+            if(ansStr === '12345' || ansStr === '13245') {
+                handleAnswer(true, 20, e);
+                showFeedback('success', 'Urutan Logis!', 'Hebat! Jika urutannya salah, misalnya mengaduk sebelum air dituangkan, instruksi tidak akan berjalan dengan benar.', () => { state.currentSubLevel++; renderMemahami(); });
+            } else {
+                handleAnswer(false, 0, e);
+                showFeedback('error', 'Urutan Kurang Tepat', 'Apakah kamu sudah menyiapkan gelas sebelum memasukkan bahan? Coba periksa urutannya lagi!'); resetSeq();
+            }
+        }
+
+        // M1 G4 Logic (Vocab)
+        window.matchedCount = 0;
+        function selVocab(btn, type) {
+            document.querySelectorAll('#vocab-buttons button').forEach(b => b.classList.remove('ring-4', 'ring-red-400', 'bg-red-200'));
+            btn.classList.add('ring-4', 'ring-red-400', 'bg-red-200');
+            window.selectedVocab = { btn, type };
+        }
+        function matchVocab(slot, expectedType) {
+            if(!window.selectedVocab) return;
+            if(window.selectedVocab.type === expectedType) {
+                slot.innerText = window.selectedVocab.type + ": " + slot.innerText;
+                slot.classList.add('filled', 'border-red-600', 'bg-red-600', 'text-white');
+                slot.onclick = null; window.selectedVocab.btn.style.visibility = 'hidden';
+                window.selectedVocab = null; window.matchedCount = (window.matchedCount || 0) + 1;
+                handleAnswer(true, 5, event);
+                if(window.matchedCount === 4) {
+                    setTimeout(() => {
+                        showFeedback('success', 'Kosa Kata Dikuasai!', 'Kamu sudah mengenal kosa kata dasar pseudocode. Ini akan sangat berguna di misi selanjutnya!', () => { window.matchedCount = 0; state.currentSubLevel++; renderMemahami(); });
+                    }, 500);
+                }
+            } else {
+                handleAnswer(false, 0, event);
+                slot.classList.add('animate-bounce-slow', 'border-gray-400', 'bg-gray-100');
+                setTimeout(() => slot.classList.remove('animate-bounce-slow', 'border-gray-400', 'bg-gray-100'), 500);
+            }
+        }
+
+        // M1 G5 Logic (Output Prediction)
+        function checkM1G5(btn, isCorrect, e) {
+             if(isCorrect) {
+                btn.classList.add('bg-red-100', 'border-red-500', 'text-red-800');
+                handleAnswer(true, 15, e);
+                showFeedback('success', 'Prediksi Tepat!', 'Variabel <b>nama</b> menyimpan nilai <i>"Rani"</i>. Perintah OUTPUT mencetak nilai yang ada di dalam variabel tersebut.', () => { state.currentSubLevel++; renderMemahami(); });
+            } else {
+                btn.classList.add('bg-gray-100', 'border-gray-400', 'opacity-70');
+                handleAnswer(false, 0, e);
+                showFeedback('error', 'Bug Detected!', 'Perhatikan: OUTPUT akan menampilkan ISI dari variabel tersebut, bukan nama variabelnya.');
+            }
+        }
+
+        // ==========================================
+        // MISSION 2: MENGAPLIKASI (5 Levels now)
+        // ==========================================
+        const mengaplikasiLevels = [
+            {
+                title: "LEVEL 1: SEQUENCE (URUTAN)",
+                desc: "Menyiapkan Kopi. Urutkan langkah di bawah ini agar robot pembuat kopi bekerja dengan benar!",
+                blocks: ['ADUK kopi', 'INPUT kopi dan air', 'TUANG air ke gelas', 'PANASKAN air'],
+                solution: ['INPUT kopi dan air', 'PANASKAN air', 'TUANG air ke gelas', 'ADUK kopi']
+            },
+            {
+                title: "LEVEL 2: CONDITION (IF/ELSE)",
+                desc: "Mesin Tiket Otomatis. Jika umur di bawah 12, tiket Anak. Jika tidak, tiket Dewasa.",
+                blocks: ['OUTPUT "Tiket Anak"', 'ELSE', 'IF umur < 12 THEN', 'END IF', 'OUTPUT "Tiket Dewasa"'],
+                solution: ['IF umur < 12 THEN', 'OUTPUT "Tiket Anak"', 'ELSE', 'OUTPUT "Tiket Dewasa"', 'END IF']
+            },
+            {
+                title: "LEVEL 3: BRANCHING (PERCABANGAN)",
+                desc: "Sistem Keamanan Pintu. Jika sandi benar '1234', pintu terbuka. Jika salah, alarm berbunyi.",
+                blocks: ['OUTPUT "Pintu Terbuka"', 'END IF', 'IF sandi == "1234" THEN', 'ELSE', 'OUTPUT "Alarm Bunyi"', 'INPUT sandi'],
+                solution: ['INPUT sandi', 'IF sandi == "1234" THEN', 'OUTPUT "Pintu Terbuka"', 'ELSE', 'OUTPUT "Alarm Bunyi"', 'END IF']
+            },
+            {
+                title: "LEVEL 4: LOOPING (FOR)",
+                desc: "Robot Pengumpul Sampah harus mengambil tepat 3 sampah secara berurutan.",
+                blocks: ['END FOR', 'AMBIL SAMPAH', 'FOR i = 1 TO 3', 'MAJU 1 LANGKAH'],
+                solution: ['FOR i = 1 TO 3', 'MAJU 1 LANGKAH', 'AMBIL SAMPAH', 'END FOR']
+            },
+            {
+                title: "LEVEL 5: FINAL QUEST (ROBOT KANTIN)",
+                desc: "Robot menerima uang. Jika uang mencukupi harga makanan, berikan makanan. Jika tidak, beri pesan 'Uang Kurang'.",
+                blocks: ['OUTPUT "Uang Kurang"', 'INPUT uang', 'IF uang >= harga THEN', 'ELSE', 'END IF', 'OUTPUT "Makanan Diberikan"'],
+                solution: ['INPUT uang', 'IF uang >= harga THEN', 'OUTPUT "Makanan Diberikan"', 'ELSE', 'OUTPUT "Uang Kurang"', 'END IF']
+            }
+        ];
+
+        function renderMengaplikasi() {
+            if (state.currentSubLevel < mengaplikasiLevels.length) {
+                const level = mengaplikasiLevels[state.currentSubLevel];
+                window.codeSequence = [];
+                const shuffledBlocks = [...level.blocks].sort(() => Math.random() - 0.5);
+                window.currentShuffledBlocks = shuffledBlocks;
+                
+                let html = `
+                    <div class="flex justify-between items-center mb-4 border-b border-red-200 pb-2">
+                        <h3 class="text-xl font-bold text-red-700">${level.title}</h3>
+                        <span class="text-xs font-bold bg-red-100 text-red-700 px-2 py-1 rounded">Kasus ${state.currentSubLevel + 1}/${mengaplikasiLevels.length}</span>
+                    </div>
+                    <p class="mb-6 text-gray-700 bg-red-50 p-3 rounded border border-red-200">${level.desc}</p>
+                    
+                    <div class="flex flex-col md:flex-row gap-4 mb-4">
+                        <!-- Source Blocks -->
+                        <div class="flex-1">
+                            <h4 class="text-sm text-red-600 font-bold mb-2">Blok Kode (Klik untuk menyusun):</h4>
+                            <div class="flex flex-col gap-2" id="code-blocks">
+                                ${shuffledBlocks.map((b, i) => {
+                                    const displaySafe = b.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                    return '<button onclick="addCodeBlock(this, ' + i + ')" class="text-left font-mono text-sm p-3 bg-white border-l-4 border-red-500 rounded hover:bg-red-50 shadow-sm text-red-900">' + displaySafe + '</button>';
+                                }).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Target Editor -->
+                        <div class="flex-1">
+                            <h4 class="text-sm text-red-600 font-bold mb-2">Area Editor:</h4>
+                            <div class="bg-gray-50 p-4 rounded-xl border-2 border-red-200 min-h-[250px] font-mono text-sm shadow-inner" id="code-editor">
+                                <div class="text-gray-400 font-bold mb-2">START</div>
+                                <div id="code-target" class="flex flex-col gap-1 pl-4 min-h-[150px]"></div>
+                                <div class="text-gray-400 font-bold mt-2">END</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center">
+                        <button onclick="resetCode()" class="text-red-500 hover:text-red-700 underline text-sm font-bold"><i class="fas fa-undo"></i> Reset Editor</button>
+                        <button onclick="runCode()" class="btn-game px-6 py-2 bg-red-600 text-white rounded-lg font-bold shadow-lg shadow-red-600/30 hover:bg-red-700"><i class="fas fa-play mr-1"></i> RUN ALGORITHM</button>
+                    </div>
+                `;
+                document.getElementById('mengaplikasi-content').innerHTML = html;
+            } else {
+                state.progress.mengaplikasi = true; addCoin(3);
+                state.badges.push({name: "Logic Builder", icon: "🥈", color: "text-gray-400"});
+                state.badges.push({name: "Loop Master", icon: "🥇", color: "text-amber-500"});
+                showFeedback('success', 'ALGORITHM DESIGNER!', 'Luar Biasa! Kamu berhasil menyelesaikan semua kasus dan menyusun algoritma dengan benar. Kamu mendapat 2 Badge baru!', () => { nav('hub'); });
+            }
+        }
+
+        function addCodeBlock(btn, index) {
+            if(btn.disabled) return;
+            btn.disabled = true; btn.classList.add('opacity-40', 'bg-gray-100');
+            
+            const code = window.currentShuffledBlocks[index];
+            window.codeSequence.push(code);
+            const target = document.getElementById('code-target');
+            
+            let indent = '';
+            if(code.includes('OUTPUT') || code.includes('AMBIL') || code.includes('MAJU') || code.includes('PANASKAN') || code.includes('TUANG') || code.includes('ADUK')) indent = '&nbsp;&nbsp;&nbsp;&nbsp;';
+            
+            const displaySafeCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            target.innerHTML += `<div class="text-red-800 font-bold py-1 bg-white px-2 rounded border border-red-200 mb-1 shadow-sm">${indent}${displaySafeCode}</div>`;
+        }
+
+        function resetCode() {
+            window.codeSequence = []; document.getElementById('code-target').innerHTML = '';
+            document.querySelectorAll('#code-blocks button').forEach(b => { b.disabled = false; b.classList.remove('opacity-40', 'bg-gray-100'); });
+        }
+
+        function runCode() {
+            const level = mengaplikasiLevels[state.currentSubLevel];
+            if(window.codeSequence.length < level.solution.length) { showFeedback('info', 'Kode Belum Lengkap', 'Gunakan semua blok kode yang disediakan untuk merakit algoritma ini.'); return; }
+
+            let isCorrect = true;
+            for(let i=0; i<level.solution.length; i++) {
+                if(window.codeSequence[i] !== level.solution[i]) { isCorrect = false; break; }
+            }
+
+            if(isCorrect) {
+                handleAnswer(true, 30, event);
+                showFeedback('success', 'Eksekusi Berhasil!', 'Program berjalan tanpa Error! Logika penyusunan algoritma kamu sudah terstruktur dengan baik.', () => { state.currentSubLevel++; renderMengaplikasi(); });
+            } else {
+                handleAnswer(false, 0, event);
+                let hint = "Coba periksa urutan logikanya lagi.";
+                if(state.currentSubLevel === 1 || state.currentSubLevel === 2) hint = "Struktur IF: IF (kondisi) THEN (aksi benar) ELSE (aksi salah) END IF.";
+                if(state.currentSubLevel === 3) hint = "Struktur perulangan: FOR mulai. Lalu letakkan instruksi yang diulang di dalamnya, tutup dengan END FOR.";
+                showFeedback('error', '🐞 Bug Detected!', `Kompiler menemukan kesalahan logika (Logic Error).<br><br><span class="text-sm font-bold text-white bg-black/20 p-2 rounded block mt-2">Petunjuk: ${hint}</span>`); resetCode();
+            }
+        }
+
+        // ==========================================
+        // MISSION 3: MEREFLEKSI
+        // ==========================================
+        function renderMerefleksi() {
+            const html = `
+                <h3 class="text-2xl font-bold text-red-700 mb-4">Debug Diriku</h3>
+                <p class="mb-6 text-gray-700">Sejauh mana kamu menguasai seni merancang algoritma? Centang kemampuan yang menurutmu <b>sudah kamu pahami</b> dengan baik:</p>
+                
+                <div class="flex flex-col gap-3 mb-8" id="checklist">
+                    <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-red-200 cursor-pointer hover:border-red-500 shadow-sm">
+                        <input type="checkbox" class="w-5 h-5 text-red-600 rounded focus:ring-red-500" value="1">
+                        <span class="text-gray-800 font-semibold">Menjelaskan fungsi pseudocode (langkah terurut)</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-red-200 cursor-pointer hover:border-red-500 shadow-sm">
+                        <input type="checkbox" class="w-5 h-5 text-red-600 rounded focus:ring-red-500" value="1">
+                        <span class="text-gray-800 font-semibold">Menggunakan INPUT dan OUTPUT</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-red-200 cursor-pointer hover:border-red-500 shadow-sm">
+                        <input type="checkbox" class="w-5 h-5 text-red-600 rounded focus:ring-red-500" value="1">
+                        <span class="text-gray-800 font-semibold">Menggunakan KONDISI (IF/ELSE)</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-red-200 cursor-pointer hover:border-red-500 shadow-sm">
+                        <input type="checkbox" class="w-5 h-5 text-red-600 rounded focus:ring-red-500" value="1">
+                        <span class="text-gray-800 font-semibold">Menggunakan PERULANGAN (FOR/WHILE)</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-red-200 cursor-pointer hover:border-red-500 shadow-sm">
+                        <input type="checkbox" class="w-5 h-5 text-red-600 rounded focus:ring-red-500" value="1">
+                        <span class="text-gray-800 font-semibold">Menemukan kesalahan (Bug) dalam algoritma</span>
+                    </label>
+                </div>
+
+                <div class="bg-red-50 p-5 rounded-xl border border-red-300 mb-8 shadow-sm">
+                    <h4 class="font-bold text-red-700 mb-2">Algoritma di Sekitarku</h4>
+                    <p class="text-sm text-gray-700 mb-3 font-semibold">Tuliskan 1 kegiatan sehari-hari yang membutuhkan urutan logis (seperti algoritma)!</p>
+                    <input type="text" id="ref-activity" placeholder="Contoh: Mencuci sepatu, Menyiapkan buku..." class="w-full bg-white border border-red-300 rounded p-3 text-gray-800 font-semibold focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600">
+                </div>
+
+                <button onclick="finishRefleksi()" class="btn-game w-full py-4 bg-gradient-to-r from-red-600 to-red-700 rounded-xl font-bold shadow-lg shadow-red-600/30 text-white text-lg">
+                    SELESAIKAN MISI UTAMA <i class="fas fa-check-circle ml-2"></i>
+                </button>
+            `;
+            document.getElementById('merefleksi-content').innerHTML = html;
+        }
+
+        function finishRefleksi() {
+            const checks = document.querySelectorAll('#checklist input:checked').length;
+            const act = document.getElementById('ref-activity').value;
+            if(act.trim() === '') { showFeedback('info', 'Isi Form', 'Tuliskan minimal satu kegiatan sehari-hari di kolom yang disediakan.'); return; }
+
+            // Menandai refleksi selesai dan membuka kesimpulan
+            state.progress.merefleksi = true;
+
+            const totalQuestions = 6 + 7; 
+            const correctRatio = state.stats.correct / (state.stats.correct + state.stats.wrong || 1);
+            let score = Math.round(correctRatio * 70); 
+            score += (checks * 4); 
+            score += 10; 
+            
+            state.stats.score = Math.min(score, 100);
+            addXP(20, 'Refleksi Selesai', event);
+            state.badges.push({name: "Bug Hunter", icon: "🐞", color: "text-red-600"});
+            if(state.stats.score >= 85) state.badges.push({name: "Master Designer", icon: "👑", color: "text-amber-500"});
+
+            showFeedback('success', 'REFLEKSI SELESAI!', 'Sistem sedang menyimpan analisis performamu. Silakan <b>Buka Buku Kesimpulan</b> di Peta Misi sebelum melihat hasil akhir!', () => { 
+                nav('hub'); 
+                checkHubUnlocks(); // Memastikan Node 4 (Kesimpulan) terbuka di Hub
+            });
+        }
+
+        function showResult() {
+            nav('result');
+            document.getElementById('result-player-name').innerHTML = `${state.player.icon} ${state.player.role}`;
+            animateValue("res-xp", 0, state.player.xp, 1500);
+            animateValue("res-coins", 0, state.player.coins, 1500);
+            document.getElementById('res-combo').innerText = 'x' + state.player.maxCombo;
+            animateValue("res-score", 0, state.stats.score, 1500);
+
+            const badgeCont = document.getElementById('badges-container');
+            badgeCont.innerHTML = state.badges.map(b => `
+                <div class="bg-white border-2 border-red-200 rounded-xl p-3 flex flex-col items-center justify-center w-28 transform transition hover:scale-110 shadow-sm">
+                    <div class="text-3xl mb-1 ${b.color}">${b.icon}</div>
+                    <div class="text-[10px] font-bold text-center leading-tight uppercase text-gray-700">${b.name}</div>
+                </div>
+            `).join('');
+
+            const rec = document.getElementById('res-recommendation');
+            if(state.stats.score < 60) rec.innerHTML = "Kamu sudah mencoba dengan baik! Jangan menyerah. Coba ulangi kembali misi <b>Kosa Kata</b> dan <b>Sequence</b> untuk memperkuat fondasi logikamu.";
+            else if (state.stats.score < 85) rec.innerHTML = "Pemahaman dasarmu sudah bagus! Kamu sudah bisa menerjemahkan masalah menjadi instruksi. Tantang dirimu dengan kasus <b>Branching</b> dan <b>Looping</b> yang lebih kompleks di lain waktu.";
+            else rec.innerHTML = "LUAR BIASA! Insting algoritmamu sangat tajam. Kamu sudah siap menjadi programmer sungguhan. Lanjutkan belajar membuat kode dengan bahasa pemrograman asli seperti Python atau JavaScript!";
+        }
+
+        function animateValue(id, start, end, duration) {
+            if (start === end) return;
+            const obj = document.getElementById(id); let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start);
+                if (progress < 1) window.requestAnimationFrame(step);
+                else { if(id === 'res-score') obj.innerHTML = end + '/100'; }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        window.onload = () => { console.log("Pseudocode Quest initialized."); };
+    </script>
+</body>
+</html>
